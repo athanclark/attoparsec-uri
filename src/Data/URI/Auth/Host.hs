@@ -5,19 +5,21 @@
 
 module Data.URI.Auth.Host where
 
-import Prelude hiding (Either)
+import Prelude hiding (Either (..))
 
 import Data.Strict (Either (..))
 import Data.Vector (Vector)
 import qualified Data.Vector as V
 import Data.Text (Text)
+import qualified Data.Text as T
 import Data.NTuple (NTuple, _1, _2, _3, _4, _5, _6, _7, _8)
 import qualified Data.NTuple as NTuple
 import Data.Word (Word8, Word16)
-import Data.Attoparsec.Text (Parser, peekChar', decimal, hexadecimal, char)
+import Data.Attoparsec.Text (Parser, peekChar', decimal, hexadecimal, char, notChar, sepBy1, many1)
 import Data.Char (isDigit, isHexDigit)
 import Data.Bits ((.&.), shiftR)
 import Data.List (intercalate)
+import Control.Applicative ((<|>))
 import Text.Read (readMaybe)
 import Text.Bytedump (hexString)
 
@@ -115,7 +117,24 @@ data URIAuthHost
       { uriAuthHostName   :: !(Vector Text)
       , uriAuthHostSuffix :: !Text
       }
+  deriving (Show)
 
 
 parseURIAuthHost :: Parser URIAuthHost
-parseURIAuthHost = undefined
+parseURIAuthHost =
+      (IP <$> ((Left <$> parseIPv4) <|> (Right <$> parseIPv6)))
+  <|> (uncurry Host <$> parseHost)
+  where
+    parseHost :: Parser (Vector Text, Text)
+    parseHost = do
+      xss@(x:xs) <- many1 (notChar '.') `sepBy1` char '.'
+      if null xs
+        then fail "Only one term parsed"
+        else let xss' :: Vector Text
+                 xss' = T.pack <$> V.fromList xss
+                 unsnoc :: Vector a -> (Vector a, a)
+                 unsnoc x =
+                   let (fs,l) = V.splitAt (V.length x - 1) x
+                   in  (fs, l V.! 0)
+                 (ns,c) = unsnoc xss'
+             in  pure (unsnoc xss')
