@@ -15,7 +15,7 @@ import qualified Data.Text as T
 import Data.NTuple (NTuple, _1, _2, _3, _4, _5, _6, _7, _8)
 import qualified Data.NTuple as NTuple
 import Data.Word (Word8, Word16)
-import Data.Attoparsec.Text (Parser, peekChar', decimal, hexadecimal, char, notChar, sepBy1, many1)
+import Data.Attoparsec.Text (Parser, peekChar', decimal, hexadecimal, char, notChar, sepBy1, many1, satisfy)
 import Data.Char (isDigit, isHexDigit)
 import Data.Bits ((.&.), shiftR)
 import Data.List (intercalate)
@@ -132,7 +132,7 @@ parseURIAuthHost =
   where
     parseHost :: Parser (Vector Text, Text)
     parseHost = do
-      xss@(x:xs) <- many1 (notChar '.') `sepBy1` char '.'
+      xss@(x:xs) <- many1 (satisfy $ \c -> all (c /=) ['.',':','/','?']) `sepBy1` char '.'
       if null xs
         then fail "Only one term parsed"
         else let xss' :: Vector Text

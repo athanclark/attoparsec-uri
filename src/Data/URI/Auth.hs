@@ -13,7 +13,7 @@ import Data.Strict.Maybe (Maybe (..), fromMaybe)
 import Data.Text (Text)
 import Data.Word (Word16)
 import qualified Data.Text as T
-import Data.Attoparsec.Text (Parser, many1, char, notChar, decimal, peekChar)
+import Data.Attoparsec.Text (Parser, many1, char, notChar, satisfy, decimal, peekChar)
 import Data.Monoid ((<>))
 import Control.Applicative ((<|>))
 import qualified GHC.Base
@@ -40,7 +40,7 @@ parseURIAuth =
           <*> ((Just <$> parsePort) <|> pure Nothing)
   where
     parseUser = do
-      u <- many1 $ notChar '@'
+      u <- many1 $ satisfy $ \c -> all (c /=) ['@','.',':','/','?','&','=']
       mC <- peekChar
       case mC of
         GHC.Base.Nothing -> fail "no user @ thing"
