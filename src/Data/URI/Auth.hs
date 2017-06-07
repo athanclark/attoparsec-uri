@@ -1,6 +1,5 @@
 {-# LANGUAGE
-    Strict
-  , RecordWildCards
+    RecordWildCards
   , OverloadedStrings
   , DeriveGeneric
   , DeriveDataTypeable

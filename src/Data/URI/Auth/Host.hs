@@ -1,6 +1,5 @@
 {-# LANGUAGE
-    Strict
-  , DataKinds
+    DataKinds
   , DeriveGeneric
   , DeriveDataTypeable
   #-}
@@ -120,6 +119,7 @@ showIPv6 xs =
 data URIAuthHost
   = IPv4 !IPv4
   | IPv6 !IPv6
+  | Localhost
   | -- | @Host ["foo","bar"] "com"@ represents @foo.bar.com@
     Host
       { uriAuthHostName   :: !(Vector Text)
@@ -129,6 +129,7 @@ data URIAuthHost
 instance Show URIAuthHost where
   show (IPv4 l4) = showIPv4 l4
   show (IPv6 r6) = showIPv6 r6
+  show Localhost = "localhost"
   show (Host ns c) = intercalate "." $ V.toList $ T.unpack <$> ns `V.snoc` c
 
 
@@ -136,13 +137,15 @@ parseURIAuthHost :: Parser URIAuthHost
 parseURIAuthHost =
       (IPv4 <$> parseIPv4)
   <|> (IPv6 <$> parseIPv6)
-  <|> (uncurry Host <$> parseHost)
+  <|> parseHost
   where
-    parseHost :: Parser (Vector Text, Text)
+    parseHost :: Parser URIAuthHost
     parseHost = do
       xss@(x:xs) <- many1 (satisfy $ \c -> all (c /=) ['.',':','/','?']) `sepBy1` char '.'
       if null xs
-        then fail "Only one term parsed"
+        then if x == "localhost"
+             then pure Localhost
+             else fail "Only one term parsed"
         else let xss' :: Vector Text
                  xss' = T.pack <$> V.fromList xss
                  unsnoc :: Vector a -> (Vector a, a)
@@ -150,4 +153,4 @@ parseURIAuthHost =
                    let (fs,l) = V.splitAt (V.length x - 1) x
                    in  (fs, l V.! 0)
                  (ns,c) = unsnoc xss'
-             in  pure (unsnoc xss')
+             in  pure (uncurry Host $ unsnoc xss')
