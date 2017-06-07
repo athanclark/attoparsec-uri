@@ -1,15 +1,110 @@
 {-# LANGUAGE
     Strict
+  , DataKinds
   #-}
 
 module Data.URI.Auth.Host where
 
 import Prelude hiding (Either)
 
-import Data.IP (IPv4, IPv6)
 import Data.Strict (Either (..))
 import Data.Vector (Vector)
+import qualified Data.Vector as V
 import Data.Text (Text)
+import Data.NTuple (NTuple, _1, _2, _3, _4, _5, _6, _7, _8)
+import qualified Data.NTuple as NTuple
+import Data.Word (Word8, Word16)
+import Data.Attoparsec.Text (Parser, peekChar', decimal, hexadecimal, char)
+import Data.Char (isDigit, isHexDigit)
+import Data.Bits ((.&.), shiftR)
+import Data.List (intercalate)
+import Text.Read (readMaybe)
+import Text.Bytedump (hexString)
+
+
+type IPv4 = NTuple 4 Word8
+
+parseIPv4 :: Parser IPv4
+parseIPv4 = do
+  a <- parseOctet
+  _ <- char '.'
+  b <- parseOctet
+  _ <- char '.'
+  c <- parseOctet
+  _ <- char '.'
+  d <- parseOctet
+  pure $ NTuple.incl _4 d
+       . NTuple.incl _3 c
+       . NTuple.incl _2 b
+       . NTuple.incl _1 a
+       $ NTuple.empty
+  where
+    parseOctet :: Parser Word8
+    parseOctet = decimal
+
+showIPv4 :: IPv4 -> String
+showIPv4 xs =
+  intercalate "." $ V.toList $ show <$> NTuple.toVector xs
+
+
+type IPv6 = NTuple 8 Word16
+
+parseIPv6 :: Parser IPv6
+parseIPv6 = do
+  a <- parseDiOctet
+  _ <- char ':'
+  b <- parseDiOctet
+  _ <- char ':'
+  c <- parseDiOctet
+  _ <- char ':'
+  d <- parseDiOctet
+  _ <- char ':'
+  let soFar = NTuple.incl _4 d
+            . NTuple.incl _3 c
+            . NTuple.incl _2 b
+            . NTuple.incl _1 a
+            $ NTuple.empty
+  q <- peekChar'
+  if q == ':'
+    then pure $ NTuple.incl _8 0
+              . NTuple.incl _7 0
+              . NTuple.incl _6 0
+              . NTuple.incl _5 0
+              $ soFar
+    else do
+      e <- parseDiOctet
+      _ <- char ':'
+      f <- parseDiOctet
+      _ <- char ':'
+      g <- parseDiOctet
+      _ <- char ':'
+      h <- parseDiOctet
+      pure $ NTuple.incl _8 h
+           . NTuple.incl _7 g
+           . NTuple.incl _6 f
+           . NTuple.incl _5 e
+           $ soFar
+  where
+    parseDiOctet :: Parser Word16
+    parseDiOctet = hexadecimal
+
+
+showIPv6 :: IPv6 -> String
+showIPv6 xs =
+  let xs'@(a:b:c:d:qs) = V.toList $ NTuple.toVector xs
+  in  if all (== 0) qs
+        then intercalate ":" (showWord16 <$> [a,b,c,d]) ++ "::"
+        else intercalate ":" (showWord16 <$> xs')
+  where
+    showWord16 :: Word16 -> String
+    showWord16 x =
+      let (l,r) = breakWord16 x
+      in  hexString l ++ hexString r
+      where
+        breakWord16 :: Word16 -> (Word8, Word8)
+        breakWord16 x = ( fromIntegral $ (x .&. 0xFF00) `shiftR` 8
+                        , fromIntegral $ x .&. 0xFF
+                        )
 
 
 
@@ -20,3 +115,7 @@ data URIAuthHost
       { uriAuthHostName   :: !(Vector Text)
       , uriAuthHostSuffix :: !Text
       }
+
+
+parseURIAuthHost :: Parser URIAuthHost
+parseURIAuthHost = undefined

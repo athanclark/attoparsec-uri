@@ -19,6 +19,6 @@ data URI = URI
   , uriAuthority :: !URIAuth
   , uriPath      :: !(Vector Text) -- ^ slash-separated list - @https://hackage.haskell.org/foo@ is @["foo"]@
   , uriQuery     :: !(Vector (Pair Text (Maybe Text))) -- ^ list of key-value pairs - @https://hackage.haskell.org/?foo=bar&baz&qux=@ is
-                                                        -- @[("foo", Just "bar"), ("baz", Nothing), ("qux", Just "")]@
+                                                       -- @[("foo", Just "bar"), ("baz", Nothing), ("qux", Just "")]@
   , uriFragment  :: !(Maybe Text) -- ^ uri suffix - @https://hackage.haskell.org/#some-header@ is @Just "some-header"@
   }

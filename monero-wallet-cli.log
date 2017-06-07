@@ -1,0 +1,12 @@
+2017-06-06 15:10:10.321	    7f79042df740	INFO 	global	contrib/epee/src/mlog.cpp:145	New log categories: *:WARNING,net:FATAL,net.p2p:FATAL,net.cn:FATAL,global:INFO,verify:FATAL,stacktrace:INFO
+2017-06-06 15:10:15.419	    7f79042df740	WARN 	wallet.wallet2	src/wallet/wallet2.cpp:2413	Loaded wallet keys file, with public address: 48iZ4NPuYsTfZEiYYXzKbTeZotimqEsfUB2LgykPAksdHkz4daHT46ZFsnkwRygxu2KR3KmkhpLvNQMtszjC3TsVFMLSNwK
+2017-06-06 15:10:16.080	    7f79042df740	INFO 	global	src/simplewallet/simplewallet.cpp:179	Opened wallet: 48iZ4NPuYsTfZEiYYXzKbTeZotimqEsfUB2LgykPAksdHkz4daHT46ZFsnkwRygxu2KR3KmkhpLvNQMtszjC3TsVFMLSNwK
+2017-06-06 15:10:16.080	    7f79042df740	INFO 	global	src/simplewallet/simplewallet.cpp:179	**********************************************************************
+Use "help" command to see the list of available commands.
+**********************************************************************
+2017-06-06 15:10:16.590	    7f79042df740	INFO 	global	src/simplewallet/simplewallet.cpp:179	Starting refresh...
+2017-06-06 15:10:17.554	    7f79042df740	WARN 	wallet.wallet2	src/wallet/wallet2.cpp:891	Received money: 41.000000000000, with tx: <641ce86ba0f6a5508e3fc5ed0cffe4637c8bc22099b1936a9eb8efcdef156a23>
+2017-06-06 15:10:17.554	    7f79042df740	INFO 	global	src/simplewallet/simplewallet.cpp:179	Height 1326817, transaction <641ce86ba0f6a5508e3fc5ed0cffe4637c8bc22099b1936a9eb8efcdef156a23>, received 41.000000000000
+2017-06-06 15:10:18.251	    7f79042df740	INFO 	global	src/simplewallet/simplewallet.cpp:179	Refresh done, blocks received: 33
+2017-06-06 15:10:18.251	    7f79042df740	INFO 	global	src/simplewallet/simplewallet.cpp:179	Balance: 76.261717497020, unlocked balance: 35.261717497020
+2017-06-06 15:10:18.251	    7f79042df740	INFO 	global	src/simplewallet/simplewallet.cpp:179	Background refresh thread started

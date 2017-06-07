@@ -19,7 +19,9 @@ library
                        Data.URI.Auth
                        Data.URI.Auth.Host
   build-depends:       base >= 4.7 && < 5
-                     , iproute
+                     , attoparsec
+                     , bytedump
+                     , n-tuple
                      , strict
                      , text
                      , vector
