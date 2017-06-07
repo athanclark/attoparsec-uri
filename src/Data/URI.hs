@@ -2,6 +2,9 @@
     Strict
   , OverloadedStrings
   , RecordWildCards
+  , DeriveGeneric
+  , DeriveDataTypeable
+  , StandaloneDeriving
   #-}
 
 module Data.URI where
@@ -19,7 +22,11 @@ import Data.Attoparsec.Text (Parser, many1, notChar, char, string, sepBy, satisf
 import Data.List (intercalate)
 import Control.Applicative ((<|>), many)
 
+import Data.Data (Data, Typeable)
+import GHC.Generics (Generic)
 
+
+deriving instance (Data a, Data b) => Data (Pair a b)
 
 data URI = URI
   { uriScheme    :: !(Maybe Text) -- ^ the scheme without the colon - @https://hackage.haskell.org/@ has a scheme of @https@
@@ -29,7 +36,7 @@ data URI = URI
   , uriQuery     :: !(Vector (Pair Text (Maybe Text))) -- ^ list of key-value pairs - @https://hackage.haskell.org/?foo=bar&baz&qux=@ is
                                                        -- @[("foo", Just "bar"), ("baz", Nothing), ("qux", Just "")]@
   , uriFragment  :: !(Maybe Text) -- ^ uri suffix - @https://hackage.haskell.org/#some-header@ is @Just "some-header"@
-  }
+  } deriving (Eq, Data, Typeable, Generic)
 
 
 instance Show URI where

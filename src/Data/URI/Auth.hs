@@ -2,6 +2,9 @@
     Strict
   , RecordWildCards
   , OverloadedStrings
+  , DeriveGeneric
+  , DeriveDataTypeable
+  , StandaloneDeriving
   #-}
 
 module Data.URI.Auth where
@@ -18,13 +21,17 @@ import Data.Monoid ((<>))
 import Control.Applicative ((<|>))
 import qualified GHC.Base
 
+import Data.Data (Data, Typeable)
+import GHC.Generics (Generic)
 
+
+deriving instance Data a => Data (Maybe a)
 
 data URIAuth = URIAuth
   { uriAuthUser :: !(Maybe Text) -- ^ a designated user - @ssh://git\@github.com@ is @git@
   , uriAuthHost :: !URIAuthHost
   , uriAuthPort :: !(Maybe Word16) -- ^ the port, if it exists - @foobar.com:3000@ is @3000@ as a 16-bit unsigned int.
-  }
+  } deriving (Eq, Data, Typeable, Generic)
 
 instance Show URIAuth where
   show URIAuth{..} =

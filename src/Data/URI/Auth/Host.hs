@@ -1,6 +1,8 @@
 {-# LANGUAGE
     Strict
   , DataKinds
+  , DeriveGeneric
+  , DeriveDataTypeable
   #-}
 
 module Data.URI.Auth.Host where
@@ -22,6 +24,11 @@ import Data.List (intercalate)
 import Control.Applicative ((<|>))
 import Text.Read (readMaybe)
 import Text.Bytedump (hexString)
+
+import Data.Data (Data, Typeable)
+import GHC.Generics (Generic)
+
+
 
 
 type IPv4 = NTuple 4 Word8
@@ -111,23 +118,24 @@ showIPv6 xs =
 
 
 data URIAuthHost
-  = IP !(Either IPv4 IPv6)
+  = IPv4 !IPv4
+  | IPv6 !IPv6
   | -- | @Host ["foo","bar"] "com"@ represents @foo.bar.com@
     Host
       { uriAuthHostName   :: !(Vector Text)
       , uriAuthHostSuffix :: !Text
-      }
+      } deriving (Eq, Data, Typeable, Generic)
 
 instance Show URIAuthHost where
-  show (IP e46) = case e46 of
-    Left l4 -> showIPv4 l4
-    Right r6 -> showIPv6 r6
+  show (IPv4 l4) = showIPv4 l4
+  show (IPv6 r6) = showIPv6 r6
   show (Host ns c) = intercalate "." $ V.toList $ T.unpack <$> ns `V.snoc` c
 
 
 parseURIAuthHost :: Parser URIAuthHost
 parseURIAuthHost =
-      (IP <$> ((Left <$> parseIPv4) <|> (Right <$> parseIPv6)))
+      (IPv4 <$> parseIPv4)
+  <|> (IPv6 <$> parseIPv6)
   <|> (uncurry Host <$> parseHost)
   where
     parseHost :: Parser (Vector Text, Text)
