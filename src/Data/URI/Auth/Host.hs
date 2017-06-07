@@ -117,7 +117,12 @@ data URIAuthHost
       { uriAuthHostName   :: !(Vector Text)
       , uriAuthHostSuffix :: !Text
       }
-  deriving (Show)
+
+instance Show URIAuthHost where
+  show (IP e46) = case e46 of
+    Left l4 -> showIPv4 l4
+    Right r6 -> showIPv6 r6
+  show (Host ns c) = intercalate "." $ V.toList $ T.unpack <$> ns `V.snoc` c
 
 
 parseURIAuthHost :: Parser URIAuthHost
