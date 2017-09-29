@@ -11,26 +11,25 @@ module Data.URI.Auth where
 import Data.URI.Auth.Host (URIAuthHost, parseURIAuthHost)
 
 import Prelude hiding (Maybe (..))
+import qualified Prelude as P
 import Data.Strict.Maybe (Maybe (..), fromMaybe)
 import Data.Text (Text)
 import Data.Word (Word16)
 import qualified Data.Text as T
-import Data.Attoparsec.Text (Parser, many1, char, notChar, satisfy, decimal, peekChar)
+import Data.Attoparsec.Text (Parser, char, decimal, peekChar, takeWhile1)
 import Data.Monoid ((<>))
-import Control.Applicative ((<|>))
-import qualified GHC.Base
+import Control.Monad (void)
+import Control.Applicative (optional)
 
-import Data.Data (Data, Typeable)
+import Data.Data (Typeable)
 import GHC.Generics (Generic)
 
-
-deriving instance Data a => Data (Maybe a)
 
 data URIAuth = URIAuth
   { uriAuthUser :: !(Maybe Text) -- ^ a designated user - @ssh://git\@github.com@ is @git@
   , uriAuthHost :: !URIAuthHost
   , uriAuthPort :: !(Maybe Word16) -- ^ the port, if it exists - @foobar.com:3000@ is @3000@ as a 16-bit unsigned int.
-  } deriving (Eq, Data, Typeable, Generic)
+  } deriving (Eq, Typeable, Generic)
 
 instance Show URIAuth where
   show URIAuth{..} =
@@ -41,18 +40,21 @@ instance Show URIAuth where
 
 parseURIAuth :: Parser URIAuth
 parseURIAuth =
-  URIAuth <$> ((Just <$> parseUser) <|> pure Nothing)
+  URIAuth <$> (toStrictMaybe <$> optional parseUser)
           <*> parseURIAuthHost
-          <*> ((Just <$> parsePort) <|> pure Nothing)
+          <*> (toStrictMaybe <$> optional parsePort)
   where
     parseUser = do
-      u <- many1 $ satisfy $ \c -> all (c /=) ['@','.',':','/','?','&','=']
+      u <- takeWhile1 (\c -> all (c /=) ['@','.',':','/','?','&','='])
       mC <- peekChar
       case mC of
-        GHC.Base.Nothing -> fail "no user @ thing"
+        P.Nothing -> fail "no user @ thing"
         _ -> do
-          _ <- char '@'
-          pure $ T.pack u
+          void $ char '@'
+          pure u
     parsePort = do
-      _ <- char ':'
+      void $ char ':'
       decimal
+
+    toStrictMaybe P.Nothing = Nothing
+    toStrictMaybe (P.Just x) = Just x

@@ -41,6 +41,8 @@ packages:
 # (e.g., acme-missiles-0.3)
 extra-deps:
   - n-tuple-0.0.1.1
+  - attoparsec-ip-0.0.0
+  - ip-0.9.2
 
 # Override default flag values for local packages and extra-deps
 flags: {}

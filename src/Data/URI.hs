@@ -10,22 +10,23 @@ module Data.URI where
 
 import Data.URI.Auth (URIAuth, parseURIAuth)
 
-import Prelude hiding (Maybe (..))
+import Prelude hiding (Maybe (..), takeWhile)
+import qualified Prelude as P
 import Data.Strict.Maybe (Maybe (..), fromMaybe)
 import Data.Strict.Tuple (Pair (..))
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Vector (Vector)
 import qualified Data.Vector as V
-import Data.Attoparsec.Text (Parser, many1, notChar, char, string, sepBy, satisfy, anyChar)
+import Data.Attoparsec.Text (Parser, char, string, sepBy, takeWhile, takeWhile1)
 import Data.List (intercalate)
-import Control.Applicative ((<|>), many)
+import Data.Char (isControl, isSpace)
+import Control.Monad (void)
+import Control.Applicative ((<|>), optional)
 
-import Data.Data (Data, Typeable)
+import Data.Data (Typeable)
 import GHC.Generics (Generic)
 
-
-deriving instance (Data a, Data b) => Data (Pair a b)
 
 data URI = URI
   { uriScheme    :: !(Maybe Text) -- ^ the scheme without the colon - @https://hackage.haskell.org/@ has a scheme of @https@
@@ -35,7 +36,7 @@ data URI = URI
   , uriQuery     :: !(Vector (Pair Text (Maybe Text))) -- ^ list of key-value pairs - @https://hackage.haskell.org/?foo=bar&baz&qux=@ is
                                                        -- @[("foo", Just "bar"), ("baz", Nothing), ("qux", Just "")]@
   , uriFragment  :: !(Maybe Text) -- ^ uri suffix - @https://hackage.haskell.org/#some-header@ is @Just "some-header"@
-  } deriving (Eq, Data, Typeable, Generic)
+  } deriving (Eq, Typeable, Generic)
 
 
 instance Show URI where
@@ -58,40 +59,45 @@ instance Show URI where
 
 parseURI :: Parser URI
 parseURI =
-  URI <$> ((Just <$> parseScheme) <|> pure Nothing)
+  URI <$> (toStrictMaybe <$> optional parseScheme)
       <*> parseSlashes
       <*> parseURIAuth
       <*> parsePath
       <*> parseQuery
-      <*> ((Just <$> parseFragment) <|> pure Nothing)
+      <*> (toStrictMaybe <$> optional parseFragment)
   where
     parseScheme = do
-      sch <- many1 (satisfy $ \c -> all (c /=) [':','/','@','.'])
+      sch <- takeWhile1 (\c -> all (c /=) [':','/','@','.'])
       _ <- char ':'
-      pure (T.pack sch)
+      pure sch
     parseSlashes = do
-      mS <- (Just <$> string "//") <|> pure Nothing
+      mS <- optional (string "//")
       case mS of
-        Nothing -> pure False
-        Just _  -> pure True
+        P.Nothing -> pure False
+        P.Just _  -> pure True
     parsePath =
-      ( do  _ <- char '/'
-            V.fromList <$> (T.pack <$> many (satisfy $ \c -> all (c /=) ['/', '?', '=', '&', '#'])) `sepBy` (char '/')
+      ( do  void $ char '/'
+            V.fromList <$> parseChunkWithout ['/', '?', '=', '&', '#'] `sepBy` char '/'
       ) <|> pure V.empty
     parseQuery :: Parser (Vector (Pair Text (Maybe Text)))
     parseQuery =
-      ( do  _ <- char '?'
+      ( do  void $ char '?'
             let parse1 = do
-                  k <- many (satisfy (\c -> all (c /=) ['=', '&', '#']))
-                  mV <- ( Just <$> do _ <- char '='
-                                      v <- many (satisfy $ \c -> c /= '&' && c /= '#')
-                                      pure (T.pack v)
+                  k <- parseChunkWithout ['=','&','#']
+                  mV <- ( Just <$> do void $ char '='
+                                      parseChunkWithout ['&','#']
                         ) <|> ( pure Nothing
                               )
-                  pure (T.pack k :!: mV)
-            qs <- parse1 `sepBy` (char '&')
+                  pure (k :!: mV)
+            qs <- parse1 `sepBy` char '&'
             pure $ V.fromList qs
       ) <|> pure V.empty
     parseFragment = do
-      _ <- char '#'
-      T.pack <$> many anyChar
+      void $ char '#'
+      parseChunkWithout []
+    parseChunkWithout :: [Char] -> Parser Text
+    parseChunkWithout xs =
+      takeWhile (\c -> not (isControl c || isSpace c) && all (c /=) xs)
+
+    toStrictMaybe P.Nothing = Nothing
+    toStrictMaybe (P.Just x) = Just x
