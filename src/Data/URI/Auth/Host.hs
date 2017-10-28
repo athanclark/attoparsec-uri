@@ -18,8 +18,8 @@ import Data.Attoparsec.IP (ipv4, ipv6)
 import Data.List (intercalate)
 import Control.Applicative ((<|>))
 import Net.Types (IPv4, IPv6)
-import qualified Net.IPv4.Text as IPv4
-import qualified Net.IPv6.Text as IPv6
+import qualified Net.IPv4 as IPv4
+import qualified Net.IPv6 as IPv6
 
 import Data.Data (Typeable)
 import GHC.Generics (Generic)
