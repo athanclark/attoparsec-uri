@@ -1,5 +1,5 @@
 name:                attoparsec-uri
-version:             0.0.3
+version:             0.0.4
 synopsis:            URI parser / printer using attoparsec
 -- description:
 homepage:            https://github.com/athanclark/attoparsec-uri#readme

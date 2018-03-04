@@ -3,23 +3,22 @@
   , RecordWildCards
   , DeriveGeneric
   , DeriveDataTypeable
-  , StandaloneDeriving
   #-}
 
 module Data.URI where
 
-import Data.URI.Auth (URIAuth, parseURIAuth)
+import Data.URI.Auth (URIAuth, parseURIAuth, printURIAuth)
 
-import Prelude hiding (Maybe (..), takeWhile)
+import Prelude hiding (Maybe (..), takeWhile, maybe)
 import qualified Prelude as P
-import Data.Strict.Maybe (Maybe (..), fromMaybe)
+import Data.Strict.Maybe (Maybe (..), maybe)
 import Data.Strict.Tuple (Pair (..))
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Vector (Vector)
 import qualified Data.Vector as V
+import Data.Monoid ((<>))
 import Data.Attoparsec.Text (Parser, char, string, sepBy, takeWhile, takeWhile1)
-import Data.List (intercalate)
 import Data.Char (isControl, isSpace)
 import Control.Monad (void)
 import Control.Applicative ((<|>), optional)
@@ -39,21 +38,28 @@ data URI = URI
   } deriving (Eq, Typeable, Generic)
 
 
-instance Show URI where
-  show URI{..} =
-       fromMaybe "" ((\s -> T.unpack s ++ ":") <$> uriScheme)
-    ++ (if uriSlashes then "//" else "")
-    ++ show uriAuthority
-    ++ "/" ++ intercalate "/" (V.toList $ T.unpack <$> uriPath)
-    ++ ( if null uriQuery
-           then ""
-           else "?" ++ intercalate "&" (V.toList $ (\(k :!: mV) -> T.unpack k ++ ( case mV of
-                                                                                     Nothing -> ""
-                                                                                     Just v  -> "=" ++ T.unpack v)) <$> uriQuery)
-       )
-    ++ case uriFragment of
-         Nothing -> ""
-         Just f -> "#" ++ T.unpack f
+printURI :: URI -> Text
+printURI URI{..} =
+     maybe "" (<> ":") uriScheme
+  <> (if uriSlashes then "//" else "")
+  <> printURIAuth uriAuthority
+  <> "/" <> T.intercalate "/" (V.toList uriPath)
+  <> ( if null uriQuery
+          then ""
+          else "?"
+            <> T.intercalate "&"
+                ( V.toList $
+                  (\(k :!: mV) ->
+                    let v' = case mV of
+                              Nothing -> ""
+                              Just v  -> "=" <> v
+                    in  k <> v'
+                  ) <$> uriQuery
+                )
+      )
+  <> case uriFragment of
+        Nothing -> ""
+        Just f -> "#" <> f
 
 
 
@@ -67,7 +73,7 @@ parseURI =
       <*> (toStrictMaybe <$> optional parseFragment)
   where
     parseScheme = do
-      sch <- takeWhile1 (\c -> all (c /=) [':','/','@','.'])
+      sch <- takeWhile1 (\c -> c `notElem` [':','/','@','.'])
       _ <- char ':'
       pure sch
     parseSlashes = do
@@ -86,8 +92,7 @@ parseURI =
                   k <- parseChunkWithout ['=','&','#']
                   mV <- ( Just <$> do void $ char '='
                                       parseChunkWithout ['&','#']
-                        ) <|> ( pure Nothing
-                              )
+                        ) <|> pure Nothing
                   pure (k :!: mV)
             qs <- parse1 `sepBy` char '&'
             pure $ V.fromList qs
@@ -97,7 +102,7 @@ parseURI =
       parseChunkWithout []
     parseChunkWithout :: [Char] -> Parser Text
     parseChunkWithout xs =
-      takeWhile (\c -> not (isControl c || isSpace c) && all (c /=) xs)
+      takeWhile (\c -> not (isControl c || isSpace c) && c `notElem` xs)
 
     toStrictMaybe P.Nothing = Nothing
     toStrictMaybe (P.Just x) = Just x

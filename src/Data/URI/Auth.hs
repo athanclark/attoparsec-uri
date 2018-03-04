@@ -3,16 +3,15 @@
   , OverloadedStrings
   , DeriveGeneric
   , DeriveDataTypeable
-  , StandaloneDeriving
   #-}
 
 module Data.URI.Auth where
 
-import Data.URI.Auth.Host (URIAuthHost, parseURIAuthHost)
+import Data.URI.Auth.Host (URIAuthHost, parseURIAuthHost, printURIAuthHost)
 
-import Prelude hiding (Maybe (..))
+import Prelude hiding (Maybe (..), maybe)
 import qualified Prelude as P
-import Data.Strict.Maybe (Maybe (..), fromMaybe)
+import Data.Strict.Maybe (Maybe (..), maybe)
 import Data.Text (Text)
 import Data.Word (Word16)
 import qualified Data.Text as T
@@ -31,11 +30,11 @@ data URIAuth = URIAuth
   , uriAuthPort :: !(Maybe Word16) -- ^ the port, if it exists - @foobar.com:3000@ is @3000@ as a 16-bit unsigned int.
   } deriving (Eq, Typeable, Generic)
 
-instance Show URIAuth where
-  show URIAuth{..} =
-       fromMaybe "" ((\u -> T.unpack $ u <> "@") <$> uriAuthUser)
-    ++ show uriAuthHost
-    ++ fromMaybe "" ((\p -> ":" ++ show p) <$> uriAuthPort)
+printURIAuth :: URIAuth -> Text
+printURIAuth URIAuth{..} =
+     maybe "" (<> "@") uriAuthUser
+  <> printURIAuthHost uriAuthHost
+  <> maybe "" (\p -> ":" <> T.pack (show p)) uriAuthPort
 
 
 parseURIAuth :: Parser URIAuth
@@ -45,7 +44,7 @@ parseURIAuth =
           <*> (toStrictMaybe <$> optional parsePort)
   where
     parseUser = do
-      u <- takeWhile1 (\c -> all (c /=) ['@','.',':','/','?','&','='])
+      u <- takeWhile1 (\c -> c `notElem` ['@','.',':','/','?','&','='])
       mC <- peekChar
       case mC of
         P.Nothing -> fail "no user @ thing"

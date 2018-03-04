@@ -11,11 +11,10 @@ import Prelude hiding (Either (..))
 
 import Data.Vector (Vector)
 import qualified Data.Vector as V
-import Data.Text (Text, unpack)
+import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Attoparsec.Text (Parser, char, sepBy1, takeWhile1)
 import Data.Attoparsec.IP (ipv4, ipv6)
-import Data.List (intercalate)
 import Control.Applicative ((<|>))
 import Net.Types (IPv4, IPv6)
 import qualified Net.IPv4 as IPv4
@@ -37,11 +36,12 @@ data URIAuthHost
       , uriAuthHostSuffix :: !Text
       } deriving (Eq, Typeable, Generic)
 
-instance Show URIAuthHost where
-  show (IPv4 l4) = unpack (IPv4.encode l4)
-  show (IPv6 r6) = unpack (IPv6.encode r6)
-  show Localhost = "localhost"
-  show (Host ns c) = intercalate "." $ V.toList $ T.unpack <$> ns `V.snoc` c
+printURIAuthHost :: URIAuthHost -> Text
+printURIAuthHost x = case x of
+  IPv4 l4 -> IPv4.encode l4
+  IPv6 r6 -> IPv6.encode r6
+  Localhost -> "localhost"
+  Host ns c -> T.intercalate "." (V.toList (ns `V.snoc` c))
 
 
 parseURIAuthHost :: Parser URIAuthHost
@@ -52,7 +52,7 @@ parseURIAuthHost =
   where
     parseHost :: Parser URIAuthHost
     parseHost = do
-      xss@(x:xs) <- takeWhile1 (\c -> all (c /=) ['.',':','/','?']) `sepBy1` char '.'
+      xss@(x:xs) <- takeWhile1 (\c -> c `notElem` ['.',':','/','?']) `sepBy1` char '.'
       if null xs
         then if x == "localhost"
              then pure Localhost
@@ -60,8 +60,8 @@ parseURIAuthHost =
         else let xss' :: Vector Text
                  xss' = V.fromList xss
                  unsnoc :: Vector a -> (Vector a, a)
-                 unsnoc x =
-                   let (fs,l) = V.splitAt (V.length x - 1) x
+                 unsnoc x' =
+                   let (fs,l) = V.splitAt (V.length x' - 1) x'
                    in  (fs, l V.! 0)
                  (ns,c) = unsnoc xss'
              in  pure (Host ns c)
