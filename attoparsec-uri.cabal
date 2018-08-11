@@ -2,10 +2,10 @@
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: b4743c6fb814b142f3c12e798f695f08487ce200a434aa34e8a933b4165564c8
+-- hash: f9910ee56c54b63aa347b32714c1bb69ef1471f797e32db8e67b6c8b19b22a99
 
 name:           attoparsec-uri
-version:        0.0.5
+version:        0.0.5.1
 synopsis:       URI parser / printer using attoparsec
 description:    Please see the README on GitHub at <https://github.com/githubuser/purescript-iso#readme>
 category:       Web

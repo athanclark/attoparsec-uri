@@ -1,5 +1,5 @@
 name:                attoparsec-uri
-version:             0.0.5
+version:             0.0.5.1
 github:              "athanclark/attoparsec-uri"
 license:             BSD3
 author:              "Athan Clark"

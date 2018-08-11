@@ -15,7 +15,7 @@ import Data.Strict.Maybe (Maybe (..), maybe)
 import Data.Text (Text)
 import Data.Word (Word16)
 import qualified Data.Text as T
-import Data.Attoparsec.Text (Parser, char, decimal, peekChar, takeWhile1, (<?>))
+import Data.Attoparsec.Text (Parser, char, decimal, takeWhile1, (<?>))
 import Data.Monoid ((<>))
 import Control.Monad (void)
 import Control.Applicative (optional)
