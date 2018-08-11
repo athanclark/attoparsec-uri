@@ -23,7 +23,7 @@ import qualified Net.IPv6 as IPv6
 import Data.Data (Typeable)
 import GHC.Generics (Generic)
 import Test.QuickCheck (Arbitrary (..))
-import Test.QuickCheck.Gen (oneof)
+import Test.QuickCheck.Gen (oneof, resize, listOf1)
 import Test.QuickCheck.Instances ()
 
 
@@ -38,7 +38,7 @@ data URIAuthHost
     Host
       { uriAuthHostName   :: !(Vector Text)
       , uriAuthHostSuffix :: !Text
-      } deriving (Eq, Typeable, Generic)
+      } deriving (Show, Eq, Typeable, Generic)
 
 instance Arbitrary URIAuthHost where
   arbitrary = oneof
@@ -46,9 +46,13 @@ instance Arbitrary URIAuthHost where
     , IPv4 <$> arbitraryIPv4
     , IPv6 <$> arbitraryIPv6
     , pure Localhost
-    , Host <$> arbitrary <*> arbitrary
+    , Host <$> arbitraryNonEmptyVector arbitraryNonEmptyText
+           <*> arbitraryNonEmptyText
     ]
     where
+      arbitraryNonEmptyText =
+        resize 2 arbitrary
+      arbitraryNonEmptyVector x = V.fromList <$> listOf1 x
       arbitraryIPv4 =
         IPv4.ipv4 <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
       arbitraryIPv6 =

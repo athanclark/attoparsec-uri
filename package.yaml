@@ -1,5 +1,5 @@
 name:                attoparsec-uri
-version:             0.0.5
+version:             0.0.6
 github:              "athanclark/attoparsec-uri"
 license:             BSD3
 author:              "Athan Clark"
@@ -22,11 +22,11 @@ ghc-options:
   - -Wall
 
 dependencies:
-- base >= 4.7 && < 4.11
+- base >= 4.11 && < 5
 - attoparsec
 - attoparsec-ip >= 0.0.1
 - bytedump
-- ip >= 1.3.0
+- ip >= 1.4.0
 - strict
 - text
 - QuickCheck
@@ -45,4 +45,9 @@ tests:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
-    - purescript-iso
+    - attoparsec-uri
+    - attoparsec
+    - tasty
+    - tasty-quickcheck
+    - QuickCheck
+    - text
