@@ -24,7 +24,7 @@ ghc-options:
 dependencies:
 - base >= 4.7 && < 4.11
 - attoparsec
-- attoparsec-ip >= 0.0.1
+- attoparsec-ip == 0.0.2
 - bytedump
 - ip >= 1.3.0
 - strict
@@ -45,4 +45,4 @@ tests:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
-    - purescript-iso
+    - attoparsec-uri
