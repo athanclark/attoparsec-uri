@@ -15,7 +15,7 @@
 # resolver:
 #  name: custom-snapshot
 #  location: "./custom-snapshot.yaml"
-resolver: lts-8.17
+resolver: lts-11.2
 
 # User packages to be built.
 # Various formats can be used as shown in the example below.
@@ -42,7 +42,7 @@ packages:
 extra-deps:
   - n-tuple-0.0.1.1
   - attoparsec-ip-0.0.1
-  - ip-1.1.0
+  - ip-1.3.0
 
 # Override default flag values for local packages and extra-deps
 flags: {}

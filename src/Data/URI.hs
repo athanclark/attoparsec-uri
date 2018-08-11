@@ -31,7 +31,7 @@ data URI = URI
   { uriScheme    :: !(Maybe Text) -- ^ the scheme without the colon - @https://hackage.haskell.org/@ has a scheme of @https@
   , uriSlashes   :: !Bool -- ^ are the slashes present? - @https://hackage.haskell.org/@ is @True@
   , uriAuthority :: !URIAuth
-  , uriPath      :: !(Vector Text) -- ^ slash-separated list - @https://hackage.haskell.org/foo@ is @["foo"]@
+  , uriPath      :: !(Maybe (Vector Text)) -- ^ slash-separated list - @https://hackage.haskell.org/foo@ is @["foo"]@
   , uriQuery     :: !(Vector (Pair Text (Maybe Text))) -- ^ list of key-value pairs - @https://hackage.haskell.org/?foo=bar&baz&qux=@ is
                                                        -- @[("foo", Just "bar"), ("baz", Nothing), ("qux", Just "")]@
   , uriFragment  :: !(Maybe Text) -- ^ uri suffix - @https://hackage.haskell.org/#some-header@ is @Just "some-header"@
@@ -43,7 +43,10 @@ printURI URI{..} =
      maybe "" (<> ":") uriScheme
   <> (if uriSlashes then "//" else "")
   <> printURIAuth uriAuthority
-  <> "/" <> T.intercalate "/" (V.toList uriPath)
+  <> ( case uriPath of
+         Just xs -> "/" <> T.intercalate "/" (V.toList xs)
+         Nothing -> ""
+     )
   <> ( if null uriQuery
           then ""
           else "?"
@@ -72,22 +75,27 @@ parseURI =
       <*> parseQuery
       <*> (toStrictMaybe <$> optional parseFragment)
   where
+    parseScheme :: Parser Text
     parseScheme = do
       sch <- takeWhile1 (\c -> c `notElem` [':','/','@','.'])
       _ <- char ':'
       pure sch
+    parseSlashes :: Parser Bool
     parseSlashes = do
       mS <- optional (string "//")
       case mS of
         P.Nothing -> pure False
         P.Just _  -> pure True
+    parsePath :: Parser (Maybe (Vector Text))
     parsePath =
-      ( do  void $ char '/'
-            V.fromList <$> parseChunkWithout ['/', '?', '=', '&', '#'] `sepBy` char '/'
-      ) <|> pure V.empty
+      let withRoot = do
+            void (char '/')
+            Just . V.fromList <$> parseChunkWithout ['/', '?', '=', '&', '#'] `sepBy` char '/'
+          withoutRoot = pure Nothing
+      in  withRoot <|> withoutRoot
     parseQuery :: Parser (Vector (Pair Text (Maybe Text)))
     parseQuery =
-      ( do  void $ char '?'
+      ( do  void (char '?')
             let parse1 = do
                   k <- parseChunkWithout ['=','&','#']
                   mV <- ( Just <$> do void $ char '='
@@ -97,6 +105,7 @@ parseURI =
             qs <- parse1 `sepBy` char '&'
             pure $ V.fromList qs
       ) <|> pure V.empty
+    parseFragment :: Parser Text
     parseFragment = do
       void $ char '#'
       parseChunkWithout []

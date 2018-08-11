@@ -22,12 +22,16 @@ import qualified Net.IPv6 as IPv6
 
 import Data.Data (Typeable)
 import GHC.Generics (Generic)
+import Test.QuickCheck (Arbitrary (..))
+import Test.QuickCheck.Gen (oneof)
+import Test.QuickCheck.Instances ()
 
 
 
 
 data URIAuthHost
-  = IPv4 !IPv4
+  = Glob
+  | IPv4 !IPv4
   | IPv6 !IPv6
   | Localhost
   | -- | @Host ["foo","bar"] "com"@ represents @foo.bar.com@
@@ -36,8 +40,24 @@ data URIAuthHost
       , uriAuthHostSuffix :: !Text
       } deriving (Eq, Typeable, Generic)
 
+instance Arbitrary URIAuthHost where
+  arbitrary = oneof
+    [ pure Glob
+    , IPv4 <$> arbitraryIPv4
+    , IPv6 <$> arbitraryIPv6
+    , pure Localhost
+    , Host <$> arbitrary <*> arbitrary
+    ]
+    where
+      arbitraryIPv4 =
+        IPv4.ipv4 <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
+      arbitraryIPv6 =
+        IPv6.ipv6 <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
+                  <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
+
 printURIAuthHost :: URIAuthHost -> Text
 printURIAuthHost x = case x of
+  Glob -> "*"
   IPv4 l4 -> IPv4.encode l4
   IPv6 r6 -> IPv6.encode r6
   Localhost -> "localhost"
@@ -54,9 +74,10 @@ parseURIAuthHost =
     parseHost = do
       xss@(x:xs) <- takeWhile1 (\c -> c `notElem` ['.',':','/','?']) `sepBy1` char '.'
       if null xs
-        then if x == "localhost"
-             then pure Localhost
-             else fail $ "Only one term parsed: " ++ show xss
+        then case () of
+               _ | x == "localhost" -> pure Localhost
+                 | x == "*" -> pure Glob
+                 | otherwise -> fail ("Only one term parsed: " ++ show xss)
         else let xss' :: Vector Text
                  xss' = V.fromList xss
                  unsnoc :: Vector a -> (Vector a, a)
