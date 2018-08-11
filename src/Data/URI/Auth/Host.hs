@@ -13,8 +13,10 @@ import Data.Vector (Vector)
 import qualified Data.Vector as V
 import Data.Text (Text)
 import qualified Data.Text as T
-import Data.Attoparsec.Text (Parser, char, sepBy1, takeWhile1)
+import Data.Attoparsec.Text (Parser, char, sepBy1, takeWhile1, (<?>))
 import Data.Attoparsec.IP (ipv4, ipv6)
+import Data.Monoid ((<>))
+import Control.Monad (void)
 import Control.Applicative ((<|>))
 import Net.Types (IPv4, IPv6)
 import qualified Net.IPv4 as IPv4
@@ -23,7 +25,7 @@ import qualified Net.IPv6 as IPv6
 import Data.Data (Typeable)
 import GHC.Generics (Generic)
 import Test.QuickCheck (Arbitrary (..))
-import Test.QuickCheck.Gen (oneof)
+import Test.QuickCheck.Gen (oneof, listOf1, elements)
 import Test.QuickCheck.Instances ()
 
 
@@ -50,8 +52,7 @@ instance Arbitrary URIAuthHost where
            <*> arbitraryNonEmptyText
     ]
     where
-      arbitraryNonEmptyText =
-        resize 2 arbitrary
+      arbitraryNonEmptyText = T.pack <$> listOf1 (elements ['a' .. 'z'])
       arbitraryNonEmptyVector x = V.fromList <$> listOf1 x
       arbitraryIPv4 =
         IPv4.ipv4 <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
@@ -63,7 +64,7 @@ printURIAuthHost :: URIAuthHost -> Text
 printURIAuthHost x = case x of
   Glob -> "*"
   IPv4 l4 -> IPv4.encode l4
-  IPv6 r6 -> IPv6.encode r6
+  IPv6 r6 -> "[" <> IPv6.encode r6 <> "]"
   Localhost -> "localhost"
   Host ns c -> T.intercalate "." (V.toList (ns `V.snoc` c))
 
@@ -71,12 +72,17 @@ printURIAuthHost x = case x of
 parseURIAuthHost :: Parser URIAuthHost
 parseURIAuthHost =
       (IPv4 <$> ipv4)
-  <|> (IPv6 <$> ipv6)
+  <|> (IPv6 <$> ipv6')
   <|> parseHost
   where
+    ipv6' = do
+      void (char '[') <?> "init ipv6"
+      x <- ipv6
+      void (char ']') <?> "end ipv6"
+      pure x
     parseHost :: Parser URIAuthHost
     parseHost = do
-      xss@(x:xs) <- takeWhile1 (\c -> c `notElem` ['.',':','/','?']) `sepBy1` char '.'
+      xss@(x:xs) <- (takeWhile1 (\c -> c `notElem` ['.',':','/','?','#']) `sepBy1` char '.') <?> "host chunks"
       if null xs
         then case () of
                _ | x == "localhost" -> pure Localhost

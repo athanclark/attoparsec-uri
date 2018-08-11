@@ -15,20 +15,30 @@ import Data.Strict.Maybe (Maybe (..), maybe)
 import Data.Text (Text)
 import Data.Word (Word16)
 import qualified Data.Text as T
-import Data.Attoparsec.Text (Parser, char, decimal, peekChar, takeWhile1)
+import Data.Attoparsec.Text (Parser, char, decimal, peekChar, takeWhile1, (<?>))
 import Data.Monoid ((<>))
 import Control.Monad (void)
 import Control.Applicative (optional)
 
 import Data.Data (Typeable)
 import GHC.Generics (Generic)
+import Test.QuickCheck (Arbitrary (..))
+import Test.QuickCheck.Gen (oneof, listOf1, elements)
 
 
 data URIAuth = URIAuth
   { uriAuthUser :: !(Maybe Text) -- ^ a designated user - @ssh://git\@github.com@ is @git@
   , uriAuthHost :: !URIAuthHost
   , uriAuthPort :: !(Maybe Word16) -- ^ the port, if it exists - @foobar.com:3000@ is @3000@ as a 16-bit unsigned int.
-  } deriving (Eq, Typeable, Generic)
+  } deriving (Show, Eq, Typeable, Generic)
+
+instance Arbitrary URIAuth where
+  arbitrary = URIAuth <$> arbitraryUser <*> arbitrary <*> arbitraryPort
+    where
+      arbitraryUser = oneof [pure Nothing, Just <$> arbitraryNonEmptyText]
+      arbitraryPort = oneof [pure Nothing, Just <$> arbitrary]
+      arbitraryNonEmptyText = T.pack <$> listOf1 (elements ['a' .. 'z'])
+
 
 printURIAuth :: URIAuth -> Text
 printURIAuth URIAuth{..} =
@@ -44,15 +54,11 @@ parseURIAuth =
           <*> (toStrictMaybe <$> optional parsePort)
   where
     parseUser = do
-      u <- takeWhile1 (\c -> c `notElem` ['@','.',':','/','?','&','='])
-      mC <- peekChar
-      case mC of
-        P.Nothing -> fail "no user @ thing"
-        _ -> do
-          void $ char '@'
-          pure u
+      u <- takeWhile1 (\c -> c `notElem` ['@','.',':','/','?','&','=']) <?> "user value"
+      void (char '@') <?> "user @"
+      pure u
     parsePort = do
-      void $ char ':'
+      void (char ':') <?> "port delimiter"
       decimal
 
     toStrictMaybe P.Nothing = Nothing

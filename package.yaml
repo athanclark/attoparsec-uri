@@ -46,3 +46,8 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - attoparsec-uri
+    - tasty
+    - tasty-quickcheck
+    - QuickCheck
+    - attoparsec
+    - text

@@ -18,13 +18,16 @@ import qualified Data.Text as T
 import Data.Vector (Vector)
 import qualified Data.Vector as V
 import Data.Monoid ((<>))
-import Data.Attoparsec.Text (Parser, char, string, sepBy, takeWhile, takeWhile1)
+import Data.Attoparsec.Text (Parser, char, string, sepBy, takeWhile, takeWhile1, (<?>))
 import Data.Char (isControl, isSpace)
-import Control.Monad (void)
+import Control.Monad (void, when)
 import Control.Applicative ((<|>), optional)
 
 import Data.Data (Typeable)
 import GHC.Generics (Generic)
+import Test.QuickCheck (Arbitrary (..))
+import Test.QuickCheck.Gen (oneof, listOf, listOf1, elements)
+import Test.QuickCheck.Instances ()
 
 
 data URI = URI
@@ -35,7 +38,28 @@ data URI = URI
   , uriQuery     :: !(Vector (Pair Text (Maybe Text))) -- ^ list of key-value pairs - @https://hackage.haskell.org/?foo=bar&baz&qux=@ is
                                                        -- @[("foo", Just "bar"), ("baz", Nothing), ("qux", Just "")]@
   , uriFragment  :: !(Maybe Text) -- ^ uri suffix - @https://hackage.haskell.org/#some-header@ is @Just "some-header"@
-  } deriving (Eq, Typeable, Generic)
+  } deriving (Show, Eq, Typeable, Generic)
+
+instance Arbitrary URI where
+  arbitrary = URI <$> arbitraryScheme
+                  <*> arbitrary
+                  <*> arbitrary
+                  <*> arbitraryPath
+                  <*> arbitraryQuery
+                  <*> arbitraryScheme
+    where
+      arbitraryScheme = oneof [pure Nothing, Just <$> arbitraryNonEmptyText]
+      arbitraryNonEmptyText = T.pack <$> listOf1 (elements ['a' .. 'z'])
+      arbitraryPath =
+        oneof [pure Nothing, Just . V.fromList <$> listOf1 arbitraryNonEmptyText]
+      arbitraryQuery =
+        V.fromList <$> listOf go
+        where
+          go = do
+            a <- arbitraryNonEmptyText
+            mb <- oneof [pure Nothing, Just <$> arbitraryNonEmptyText]
+            pure (a :!: mb)
+
 
 
 printURI :: URI -> Text
@@ -77,38 +101,39 @@ parseURI =
   where
     parseScheme :: Parser Text
     parseScheme = do
-      sch <- takeWhile1 (\c -> c `notElem` [':','/','@','.'])
-      _ <- char ':'
+      sch <- takeWhile1 (\c -> c `notElem` [':','/','@','.','[','*']) <?> "scheme value"
+      when (sch == "localhost") (fail "can't be localhost")
+      void (char ':') <?> "scheme colon"
       pure sch
     parseSlashes :: Parser Bool
     parseSlashes = do
-      mS <- optional (string "//")
+      mS <- optional (string "//") <?> "slashes"
       case mS of
         P.Nothing -> pure False
         P.Just _  -> pure True
     parsePath :: Parser (Maybe (Vector Text))
     parsePath =
       let withRoot = do
-            void (char '/')
-            Just . V.fromList <$> parseChunkWithout ['/', '?', '=', '&', '#'] `sepBy` char '/'
-          withoutRoot = pure Nothing
+            void (char '/') <?> "root"
+            (Just . V.fromList <$> parseChunkWithout ['/', '?', '=', '&', '#'] `sepBy` char '/') <?> "path"
+          withoutRoot = pure Nothing <?> "empty path"
       in  withRoot <|> withoutRoot
     parseQuery :: Parser (Vector (Pair Text (Maybe Text)))
     parseQuery =
-      ( do  void (char '?')
+      ( do  void (char '?') <?> "uri query init"
             let parse1 = do
-                  k <- parseChunkWithout ['=','&','#']
-                  mV <- ( Just <$> do void $ char '='
-                                      parseChunkWithout ['&','#']
+                  k <- parseChunkWithout ['=','&','#'] <?> "uri query key"
+                  mV <- ( Just <$> do void (char '=') <?> "uri query sep"
+                                      parseChunkWithout ['&','#'] <?> "uri query val"
                         ) <|> pure Nothing
                   pure (k :!: mV)
-            qs <- parse1 `sepBy` char '&'
-            pure $ V.fromList qs
+            qs <- parse1 `sepBy` char '&' <?> "query params"
+            pure (V.fromList qs)
       ) <|> pure V.empty
     parseFragment :: Parser Text
     parseFragment = do
-      void $ char '#'
-      parseChunkWithout []
+      void (char '#') <?> "fragment init"
+      parseChunkWithout [] <?> "fragment value"
     parseChunkWithout :: [Char] -> Parser Text
     parseChunkWithout xs =
       takeWhile (\c -> not (isControl c || isSpace c) && c `notElem` xs)
