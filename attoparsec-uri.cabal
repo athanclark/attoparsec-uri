@@ -2,10 +2,10 @@
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: f9910ee56c54b63aa347b32714c1bb69ef1471f797e32db8e67b6c8b19b22a99
+-- hash: 14d2e305af1ea4cf74aa951aea3d3b29c0a5ee76135b2ec915c0c7e5858fc73e
 
 name:           attoparsec-uri
-version:        0.0.5.1
+version:        0.0.6
 synopsis:       URI parser / printer using attoparsec
 description:    Please see the README on GitHub at <https://github.com/githubuser/purescript-iso#readme>
 category:       Web
@@ -39,10 +39,10 @@ library
   build-depends:
       QuickCheck
     , attoparsec
-    , attoparsec-ip ==0.0.2
-    , base >=4.7 && <4.11
+    , attoparsec-ip >=0.0.3
+    , base >=4.11 && <5
     , bytedump
-    , ip >=1.3.0
+    , ip >=1.4.0
     , quickcheck-instances
     , strict
     , text
@@ -60,11 +60,11 @@ test-suite attoparsec-uri-test
   build-depends:
       QuickCheck
     , attoparsec
-    , attoparsec-ip ==0.0.2
+    , attoparsec-ip >=0.0.3
     , attoparsec-uri
-    , base >=4.7 && <4.11
+    , base >=4.11 && <5
     , bytedump
-    , ip >=1.3.0
+    , ip >=1.4.0
     , quickcheck-instances
     , strict
     , tasty
