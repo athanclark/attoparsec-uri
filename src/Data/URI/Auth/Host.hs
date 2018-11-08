@@ -82,7 +82,9 @@ parseURIAuthHost =
       pure x
     parseHost :: Parser URIAuthHost
     parseHost = do
-      xss@(x:xs) <- (takeWhile1 (\c -> c `notElem` ['.',':','/','?','#']) `sepBy1` char '.') <?> "host chunks"
+      let hostChunk = takeWhile1 (\c -> c `notElem` ['.',':','/','?','#']) <?> "host chunk"
+          hostChunks = hostChunk `sepBy1` char '.' <?> "host chunks"
+      xss@(x:xs) <- hostChunks
       if null xs
         then case () of
                _ | x == "localhost" -> pure Localhost

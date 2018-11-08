@@ -12,11 +12,11 @@ import Data.URI.Auth.Host (URIAuthHost, parseURIAuthHost, printURIAuthHost)
 import Prelude hiding (Maybe (..), maybe)
 import qualified Prelude as P
 import Data.Strict.Maybe (Maybe (..), maybe)
-import Data.Strict.Tuple (Pair (..))
 import Data.Text (Text)
 import Data.Word (Word16)
 import qualified Data.Text as T
-import Data.Attoparsec.Text (Parser, char, decimal, takeWhile1, (<?>))
+import Data.Attoparsec.Text ( Parser, char, decimal, takeWhile1, (<?>)
+                            , satisfy, peekChar')
 import Data.Monoid ((<>))
 import Control.Monad (void)
 import Control.Applicative (optional)
@@ -28,46 +28,54 @@ import Test.QuickCheck.Gen (oneof, listOf1, elements)
 
 
 data URIAuth = URIAuth
-  { uriAuthUser :: !(Maybe (Pair Text (Maybe Text))) -- ^ a designated user - @ssh://git:foo\@github.com@ is @Just ("git" :!: Just "foo")@
-  , uriAuthHost :: !URIAuthHost
-  , uriAuthPort :: !(Maybe Word16) -- ^ the port, if it exists - @foobar.com:3000@ is @3000@ as a 16-bit unsigned int.
+  { uriAuthUser     :: !(Maybe Text) -- ^ a designated user - @ssh://git\@github.com@ is @git@
+  , uriAuthPassword :: !(Maybe Text) -- ^ a designated password (this field is depricated in RFC 3986, passwords with an at-character will not parse) - @https://user:password\@github.com@ is @password@
+  , uriAuthHost     :: !URIAuthHost
+  , uriAuthPort     :: !(Maybe Word16) -- ^ the port, if it exists - @foobar.com:3000@ is @3000@ as a 16-bit unsigned int.
   } deriving (Show, Eq, Typeable, Generic)
 
 instance Arbitrary URIAuth where
-  arbitrary = URIAuth <$> arbitraryUser <*> arbitrary <*> arbitraryPort
+  arbitrary = URIAuth <$> arbitraryUser <*> arbitraryPassword <*> arbitrary <*> arbitraryPort
     where
-      arbitraryUser = oneof
-        [ pure Nothing
-        , do u <- arbitraryNonEmptyText
-             mp <- oneof [pure Nothing] -- , Just <$> arbitraryNonEmptyText]
-             pure $ Just $ u :!: mp
-        ]
+      arbitraryUser = oneof [pure Nothing, Just <$> arbitraryNonEmptyText]
+      arbitraryPassword = oneof [pure Nothing, Just <$> arbitraryNonEmptyText]
       arbitraryPort = oneof [pure Nothing, Just <$> arbitrary]
       arbitraryNonEmptyText = T.pack <$> listOf1 (elements ['a' .. 'z'])
 
 
+-- | Prints the URI auth but omits the password even if present.
 printURIAuth :: URIAuth -> Text
 printURIAuth URIAuth{..} =
-     maybe "" (\(u :!: mp) -> u <> maybe "" (":" <>) mp <> "@") uriAuthUser
+     ( case uriAuthPassword of
+         Nothing -> maybe "" (<> "@") uriAuthUser
+         Just p -> maybe ":" (<> ":") uriAuthUser <> p <> "@"
+     )
   <> printURIAuthHost uriAuthHost
   <> maybe "" (\p -> ":" <> T.pack (show p)) uriAuthPort
 
 
 parseURIAuth :: Parser URIAuth
-parseURIAuth =
-  URIAuth <$> (toStrictMaybe <$> optional parseUser)
-          <*> parseURIAuthHost
+parseURIAuth = do
+  let withPassword = do
+        void (char ':')
+        parsePassword
+      hasUsernameOrPassword = do
+        u <- Just <$> parseUser
+        p <- toStrictMaybe <$> optional withPassword
+        void (char '@')
+        pure (u,p)
+  (u,p) <- do
+    mUP <- optional hasUsernameOrPassword
+    case mUP of
+      P.Nothing -> pure (Nothing, Nothing)
+      P.Just xs -> pure xs
+  URIAuth u
+          p
+          <$> parseURIAuthHost
           <*> (toStrictMaybe <$> optional parsePort)
   where
-    parseUser = do
-      u <- takeWhile1 (\c -> c `notElem` ['@','.',':','/','?','&','=']) <?> "user value"
-      p <-
-        let withPass = do
-              _ <- char ':'
-              takeWhile1 (\c -> c `notElem` ['@','.',':','/','?','&','=']) <?> "password value"
-        in  toStrictMaybe <$> optional withPass
-      void (char '@') <?> "user @"
-      pure (u :!: p)
+    parseUser = takeWhile1 (\c -> c `notElem` ['@','.',':','/','?','&','=','[']) <?> "user value"
+    parsePassword = takeWhile1 (\c -> c `notElem` ['@','.',':','/','?','&','=','[']) <?> "password value"
     parsePort = do
       void (char ':') <?> "port delimiter"
       decimal
