@@ -4,10 +4,10 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: f8200fa034f7af1e55e0e521e0fc648bbc1e9ebc8d5d83c8b10ab2360b2c8165
+-- hash: 9bf89fab31c2f7b67626edd4597a5dda854b4ba4bcc22c5859344879322502dd
 
 name:           attoparsec-uri
-version:        0.0.7
+version:        0.0.8
 synopsis:       URI parser / printer using attoparsec
 description:    Please see the README on GitHub at <https://github.com/githubuser/purescript-iso#readme>
 category:       Web
