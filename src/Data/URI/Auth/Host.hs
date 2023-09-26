@@ -14,11 +14,11 @@ import qualified Data.Vector as V
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Attoparsec.Text (Parser, char, sepBy1, takeWhile1, (<?>))
-import Data.Attoparsec.IP (ipv4, ipv6)
 import Data.Monoid ((<>))
 import Control.Monad (void)
 import Control.Applicative ((<|>))
 import Net.Types (IPv4, IPv6)
+import qualified Net.Types as NetTypes
 import qualified Net.IPv4 as IPv4
 import qualified Net.IPv6 as IPv6
 
@@ -54,11 +54,9 @@ instance Arbitrary URIAuthHost where
     where
       arbitraryNonEmptyText = T.pack <$> listOf1 (elements ['a' .. 'z'])
       arbitraryNonEmptyVector x = V.fromList <$> listOf1 x
-      arbitraryIPv4 =
-        IPv4.ipv4 <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
-      arbitraryIPv6 =
-        IPv6.ipv6 <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
-                  <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
+      arbitraryIPv4 = NetTypes.IPv4 <$> arbitrary
+      arbitraryIPv6 = IPv6.ipv6 <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
+        <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
 
 printURIAuthHost :: URIAuthHost -> Text
 printURIAuthHost x = case x of
@@ -71,13 +69,13 @@ printURIAuthHost x = case x of
 
 parseURIAuthHost :: Parser URIAuthHost
 parseURIAuthHost =
-      (IPv4 <$> ipv4)
+      (IPv4 <$> IPv4.parser)
   <|> (IPv6 <$> ipv6')
   <|> parseHost
   where
     ipv6' = do
       void (char '[') <?> "init ipv6"
-      x <- ipv6
+      x <- IPv6.parser
       void (char ']') <?> "end ipv6"
       pure x
     parseHost :: Parser URIAuthHost

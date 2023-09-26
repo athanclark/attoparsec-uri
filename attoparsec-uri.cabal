@@ -1,8 +1,10 @@
--- This file has been generated from package.yaml by hpack version 0.21.2.
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.35.2.
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 4c6880fda99def0e3d086d09406f42a8fc03255b7dd64eb76559e6a62a49060f
+-- hash: f8200fa034f7af1e55e0e521e0fc648bbc1e9ebc8d5d83c8b10ab2360b2c8165
 
 name:           attoparsec-uri
 version:        0.0.7
@@ -17,8 +19,6 @@ copyright:      2018 (c) Local Cooking Inc.
 license:        BSD3
 license-file:   LICENSE
 build-type:     Simple
-cabal-version:  >= 1.10
-
 extra-source-files:
     README.md
 
@@ -39,7 +39,6 @@ library
   build-depends:
       QuickCheck
     , attoparsec
-    , attoparsec-ip >=0.0.3
     , base >=4.11 && <5
     , bytedump
     , ip >=1.4.0
@@ -60,7 +59,6 @@ test-suite attoparsec-uri-test
   build-depends:
       QuickCheck
     , attoparsec
-    , attoparsec-ip >=0.0.3
     , attoparsec-uri
     , base >=4.11 && <5
     , bytedump

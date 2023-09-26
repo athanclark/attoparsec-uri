@@ -24,7 +24,6 @@ ghc-options:
 dependencies:
 - base >= 4.11 && < 5
 - attoparsec
-- attoparsec-ip >= 0.0.3
 - bytedump
 - ip >= 1.4.0
 - strict

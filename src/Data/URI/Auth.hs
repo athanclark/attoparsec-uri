@@ -35,10 +35,14 @@ data URIAuth = URIAuth
   } deriving (Show, Eq, Typeable, Generic)
 
 instance Arbitrary URIAuth where
-  arbitrary = URIAuth <$> arbitraryUser <*> arbitraryPassword <*> arbitrary <*> arbitraryPort
+  arbitrary = do
+    mUser <- arbitraryUser
+    mPassword <- if mUser == Nothing then pure Nothing else Just <$> arbitraryNonEmptyText
+    host <- arbitrary
+    mPort <- arbitraryPort
+    pure (URIAuth mUser mPassword host mPort)
     where
       arbitraryUser = oneof [pure Nothing, Just <$> arbitraryNonEmptyText]
-      arbitraryPassword = oneof [pure Nothing, Just <$> arbitraryNonEmptyText]
       arbitraryPort = oneof [pure Nothing, Just <$> arbitrary]
       arbitraryNonEmptyText = T.pack <$> listOf1 (elements ['a' .. 'z'])
 
