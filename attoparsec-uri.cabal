@@ -4,18 +4,18 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 9bf89fab31c2f7b67626edd4597a5dda854b4ba4bcc22c5859344879322502dd
+-- hash: 07ffc6b69a931d7889f054fc0d6e305812310b32cd8122bd4190144bbced0dc0
 
 name:           attoparsec-uri
-version:        0.0.8
+version:        0.0.8.1
 synopsis:       URI parser / printer using attoparsec
-description:    Please see the README on GitHub at <https://github.com/githubuser/purescript-iso#readme>
+description:    Please see the README on GitHub at <https://github.com/athanclark/attoparsec-uri#readme>
 category:       Web
 homepage:       https://github.com/athanclark/attoparsec-uri#readme
 bug-reports:    https://github.com/athanclark/attoparsec-uri/issues
 author:         Athan Clark
-maintainer:     athan.clark@localcooking.com
-copyright:      2018 (c) Local Cooking Inc.
+maintainer:     athan.clark@gmail.com
+copyright:      Copyright (c) 2023 Athan Clark
 license:        BSD3
 license-file:   LICENSE
 build-type:     Simple

@@ -1,10 +1,10 @@
 name:                attoparsec-uri
-version:             0.0.8
+version:             0.0.8.1
 github:              "athanclark/attoparsec-uri"
 license:             BSD3
 author:              "Athan Clark"
-maintainer:          "athan.clark@localcooking.com"
-copyright:           "2018 (c) Local Cooking Inc."
+maintainer:          "athan.clark@gmail.com"
+copyright:           "Copyright (c) 2023 Athan Clark"
 
 extra-source-files:
 - README.md
@@ -13,10 +13,7 @@ extra-source-files:
 synopsis:            URI parser / printer using attoparsec
 category:            Web
 
-# To avoid duplicated efforts in documentation and dealing with the
-# complications of embedding Haddock markup inside cabal files, it is
-# common to point users to the README.md file.
-description:         Please see the README on GitHub at <https://github.com/githubuser/purescript-iso#readme>
+description:         Please see the README on GitHub at <https://github.com/athanclark/attoparsec-uri#readme>
 
 ghc-options:
   - -Wall
