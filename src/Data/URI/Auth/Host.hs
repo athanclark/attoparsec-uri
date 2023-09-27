@@ -14,7 +14,6 @@ import qualified Data.Vector as V
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Attoparsec.Text (Parser, char, sepBy1, takeWhile1, (<?>))
-import Data.Monoid ((<>))
 import Control.Monad (void)
 import Control.Applicative ((<|>))
 import Net.Types (IPv4, IPv6)

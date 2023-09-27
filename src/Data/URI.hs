@@ -1,32 +1,32 @@
-{-# LANGUAGE
-    OverloadedStrings
-  , RecordWildCards
-  , DeriveGeneric
-  , DeriveDataTypeable
-  #-}
+{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE DeriveGeneric      #-}
+{-# LANGUAGE OverloadedStrings  #-}
+{-# LANGUAGE RecordWildCards    #-}
 
 module Data.URI where
 
-import Data.URI.Auth (URIAuth (uriAuthPassword), parseURIAuth, printURIAuth)
+import           Data.URI.Auth             (URIAuth (uriAuthPassword),
+                                            parseURIAuth, printURIAuth)
 
-import Prelude hiding (Maybe (..), takeWhile, maybe)
-import qualified Prelude as P
-import Data.Strict.Maybe (Maybe (..), maybe, isJust)
-import Data.Strict.Tuple (Pair (..))
-import Data.Text (Text)
-import qualified Data.Text as T
-import Data.Vector (Vector)
-import qualified Data.Vector as V
-import Data.Attoparsec.Text (Parser, char, string, sepBy, takeWhile, takeWhile1, (<?>))
-import Data.Char (isControl, isSpace)
-import Control.Monad (void, when)
-import Control.Applicative ((<|>), optional)
+import           Control.Applicative       (optional, (<|>))
+import           Control.Monad             (void, when)
+import           Data.Attoparsec.Text      (Parser, char, sepBy, string,
+                                            takeWhile, takeWhile1, (<?>))
+import           Data.Char                 (isControl, isSpace)
+import           Data.Strict.Maybe         (Maybe (..), isJust, maybe)
+import           Data.Strict.Tuple         (Pair (..))
+import           Data.Text                 (Text)
+import qualified Data.Text                 as T
+import           Data.Vector               (Vector)
+import qualified Data.Vector               as V
+import           Prelude                   hiding (Maybe (..), maybe, takeWhile)
+import qualified Prelude                   as P
 
-import Data.Data (Typeable)
-import GHC.Generics (Generic)
-import Test.QuickCheck (Arbitrary (..))
-import Test.QuickCheck.Gen (oneof, listOf, listOf1, elements)
-import Test.QuickCheck.Instances ()
+import           Data.Data                 (Typeable)
+import           GHC.Generics              (Generic)
+import           Test.QuickCheck           (Arbitrary (..))
+import           Test.QuickCheck.Gen       (elements, listOf, listOf1, oneof)
+import           Test.QuickCheck.Instances ()
 
 
 data DirOrFile = Dir | File
@@ -101,7 +101,7 @@ printURI URI{..} =
       )
   <> case uriFragment of
         Nothing -> ""
-        Just f -> "#" <> f
+        Just f  -> "#" <> f
 
 
 
@@ -160,5 +160,5 @@ parseURI =
     parseChunkWithout xs =
       takeWhile (\c -> not (isControl c || isSpace c) && c `notElem` xs)
 
-    toStrictMaybe P.Nothing = Nothing
+    toStrictMaybe P.Nothing  = Nothing
     toStrictMaybe (P.Just x) = Just x
