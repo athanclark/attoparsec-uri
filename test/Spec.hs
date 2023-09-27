@@ -16,7 +16,7 @@ main :: IO ()
 main = defaultMain $ testGroup "URI tests"
   [ Q.testProperty "URIAuthHost" (parsePrintIso printURIAuthHost parseURIAuthHost)
   , Q.testProperty "URIAuth" (parsePrintIso printURIAuth parseURIAuth)
-  -- , Q.testProperty "URI" (parsePrintIso printURI parseURI)
+  , Q.testProperty "URI" (parsePrintIso printURI parseURI)
   ]
 
 
@@ -26,7 +26,7 @@ parsePrintIso print' parser x =
       run q = case q of
         Fail leftover es e ->
           let go = unsafePerformIO $ do
-                putStr "Original value: "
+                putStr "\nOriginal value: "
                 print x
                 putStr "Printed Text: "
                 putStrLn $ T.unpack $ print' x
@@ -42,7 +42,7 @@ parsePrintIso print' parser x =
           | y == x -> succeeded
           | otherwise ->
             let go = unsafePerformIO $ do
-                  putStr "Original value: "
+                  putStr "\nOriginal value: "
                   print x
                   putStr "Printed Text: "
                   putStrLn $ T.unpack $ print' x

@@ -7,17 +7,16 @@
 
 module Data.URI where
 
-import Data.URI.Auth (URIAuth, parseURIAuth, printURIAuth)
+import Data.URI.Auth (URIAuth (uriAuthPassword), parseURIAuth, printURIAuth)
 
 import Prelude hiding (Maybe (..), takeWhile, maybe)
 import qualified Prelude as P
-import Data.Strict.Maybe (Maybe (..), maybe)
+import Data.Strict.Maybe (Maybe (..), maybe, isJust)
 import Data.Strict.Tuple (Pair (..))
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Vector (Vector)
 import qualified Data.Vector as V
-import Data.Monoid ((<>))
 import Data.Attoparsec.Text (Parser, char, string, sepBy, takeWhile, takeWhile1, (<?>))
 import Data.Char (isControl, isSpace)
 import Control.Monad (void, when)
@@ -30,28 +29,44 @@ import Test.QuickCheck.Gen (oneof, listOf, listOf1, elements)
 import Test.QuickCheck.Instances ()
 
 
+data DirOrFile = Dir | File
+  deriving (Show, Eq, Typeable, Generic)
+
+instance Arbitrary DirOrFile where
+  arbitrary = oneof [pure Dir, pure File]
+
 data URI = URI
   { uriScheme    :: !(Maybe Text) -- ^ the scheme without the colon - @https://hackage.haskell.org/@ has a scheme of @https@
   , uriSlashes   :: !Bool -- ^ are the slashes present? - @https://hackage.haskell.org/@ is @True@
   , uriAuthority :: !URIAuth
-  , uriPath      :: !(Maybe (Vector Text)) -- ^ slash-separated list - @https://hackage.haskell.org/foo@ is @["foo"]@
+  , uriPath      :: !(Maybe (Vector Text, DirOrFile)) -- ^ slash-separated list - @https://hackage.haskell.org/foo@ is @["foo"]@, second value is if the path has a trailing slash
   , uriQuery     :: !(Vector (Pair Text (Maybe Text))) -- ^ list of key-value pairs - @https://hackage.haskell.org/?foo=bar&baz&qux=@ is
                                                        -- @[("foo", Just "bar"), ("baz", Nothing), ("qux", Just "")]@
   , uriFragment  :: !(Maybe Text) -- ^ uri suffix - @https://hackage.haskell.org/#some-header@ is @Just "some-header"@
   } deriving (Show, Eq, Typeable, Generic)
 
 instance Arbitrary URI where
-  arbitrary = URI <$> arbitraryScheme
-                  <*> arbitrary
-                  <*> arbitrary
-                  <*> arbitraryPath
-                  <*> arbitraryQuery
-                  <*> arbitraryScheme
+  arbitrary = do
+    auth <- arbitrary
+    scheme <- if isJust (uriAuthPassword auth)
+      then Just <$> arbitraryNonEmptyText
+      else arbitraryScheme
+    slashes <- arbitrary
+    path <- arbitraryPath
+    query <- arbitraryQuery
+    fragment <- arbitraryScheme
+    pure $ URI scheme slashes auth path query fragment
     where
       arbitraryScheme = oneof [pure Nothing, Just <$> arbitraryNonEmptyText]
       arbitraryNonEmptyText = T.pack <$> listOf1 (elements ['a' .. 'z'])
       arbitraryPath =
-        oneof [pure Nothing, Just . V.fromList <$> listOf1 arbitraryNonEmptyText]
+        oneof
+          [ pure Nothing
+          , do
+              xs <- V.fromList <$> listOf1 arbitraryNonEmptyText
+              y <- arbitrary
+              pure $ Just (xs, y)
+          ]
       arbitraryQuery =
         V.fromList <$> listOf go
         where
@@ -68,7 +83,7 @@ printURI URI{..} =
   <> (if uriSlashes then "//" else "")
   <> printURIAuth uriAuthority
   <> ( case uriPath of
-         Just xs -> "/" <> T.intercalate "/" (V.toList xs)
+         Just (xs, f) -> "/" <> T.intercalate "/" (V.toList xs) <> (if f == Dir && not (null xs) then "/" else "")
          Nothing -> ""
      )
   <> ( if null uriQuery
@@ -111,11 +126,18 @@ parseURI =
       case mS of
         P.Nothing -> pure False
         P.Just _  -> pure True
-    parsePath :: Parser (Maybe (Vector Text))
+    parsePath :: Parser (Maybe (Vector Text, DirOrFile))
     parsePath =
       let withRoot = do
             void (char '/') <?> "root"
-            (Just . V.fromList <$> parseChunkWithout ['/', '?', '=', '&', '#'] `sepBy` char '/') <?> "path"
+            (
+              do
+                xs <- V.fromList <$> parseChunkWithout ['/', '?', '=', '&', '#'] `sepBy` char '/'
+                pure . Just $
+                  if not (null xs) && V.last xs == ""
+                  then (V.init xs, Dir)
+                  else (xs, File)
+              ) <?> "path"
           withoutRoot = pure Nothing <?> "empty path"
       in  withRoot <|> withoutRoot
     parseQuery :: Parser (Vector (Pair Text (Maybe Text)))
